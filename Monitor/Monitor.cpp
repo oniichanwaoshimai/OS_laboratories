@@ -24,7 +24,7 @@ private:
     mutex mtx;
     condition_variable cv;
     bool event_ready = false;           // событие готово для обработки
-    bool provider_finished = false;     // поставщик завершил работу
+    bool isStopped = false;             // монитор остановлен
     Value* shared_data = nullptr;
 
 public:
@@ -36,8 +36,15 @@ public:
             unique_lock<mutex> lock(mtx);
 
             // Ожидаем, пока потребитель не обработает предыдущее событие
-            while (event_ready) {
+            // И проверяем, не остановлен ли монитор
+            while (event_ready && !isStopped) {
                 cv.wait(lock);
+            }
+
+            // Если монитор остановлен - выходим
+            if (isStopped) {
+                cout << "Monitor is stopped!" << endl;
+                break;
             }
 
             // Подготавливаем данные
@@ -51,10 +58,10 @@ public:
             cv.notify_one();
         }
 
-        // Завершаем работу
+        // Завершаем работу - останавливаем монитор
         unique_lock<mutex> lock(mtx);
-        provider_finished = true;
-        cv.notify_one();
+        isStopped = true;
+        cv.notify_one();  // Будим потребителя, если он спит
     }
 
     // Метод потребителя
@@ -62,13 +69,13 @@ public:
         while (true) {
             unique_lock<mutex> lock(mtx);
 
-            // Ожидаем событие или завершение поставщика
-            while (!event_ready && !provider_finished) {
+            // Ожидаем событие или остановку монитора
+            while (!event_ready && !isStopped) {
                 cv.wait(lock);
             }
 
             // Проверяем условие завершения
-            if (provider_finished && !event_ready) {
+            if (isStopped) {
                 cout << "Consumer: finished work" << endl;
                 break;
             }
