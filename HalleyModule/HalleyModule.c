@@ -3,8 +3,6 @@
 #include <linux/proc_fs.h>
 #include <linux/seq_file.h>
 #include <linux/time.h>
-#include <linux/jiffies.h>
-#include <linux/sched.h>
 
 #define MODULE_NAME "HalleyModule"
 #define PROC_FILE_NAME "tsulab"
